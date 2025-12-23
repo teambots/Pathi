@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pathology Elite Exam - Shuffled Answers</title>
+    <style>
+        :root {
+            --primary: #4776E6; --secondary: #8E54E9; --bg: #f8f9fd;
+            --white: #ffffff; --text: #2d3436; --success: #00b894; --danger: #d63031;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            min-height: 100vh; margin: 0; display: flex; align-items: center; justify-content: center; padding: 15px;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.98); width: 100%; max-width: 750px;
+            border-radius: 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+            padding: 35px; animation: fadeIn 0.6s ease-out;
+        }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        h1 { color: var(--text); text-align: center; margin-bottom: 30px; }
+        .progress-wrapper { background: #dfe6e9; height: 8px; border-radius: 10px; margin-bottom: 25px; overflow: hidden; display: none; }
+        #progress-bar { height: 100%; background: linear-gradient(to right, #4776E6, #8E54E9); width: 0%; transition: width 0.4s ease; }
+        .menu-grid { display: grid; gap: 15px; }
+        .mode-btn { padding: 20px; border: none; border-radius: 16px; font-size: 18px; font-weight: 700; cursor: pointer; transition: 0.3s; }
+        .study-btn { background: #e8f0fe; color: var(--primary); border: 2px solid var(--primary); }
+        .exam-btn { background: var(--primary); color: white; }
+        #quiz-section, #result-section { display: none; }
+        .question-text { font-size: 20px; font-weight: 800; color: var(--text); margin-bottom: 25px; text-align: left; direction: ltr; }
+        .option {
+            background: var(--white); border: 2px solid #edeff2; padding: 16px; border-radius: 12px;
+            cursor: pointer; transition: 0.2s; text-align: left; direction: ltr; font-size: 17px; margin-bottom: 10px;
+        }
+        .option:hover { border-color: var(--primary); background: #f0f7ff; }
+        .correct { background: var(--success) !important; color: white; border-color: var(--success); }
+        .wrong { background: var(--danger) !important; color: white; border-color: var(--danger); }
+        .mistake-card { background: #fff5f5; border-right: 5px solid var(--danger); padding: 15px; margin-top: 15px; border-radius: 10px; text-align: left; direction: ltr; }
+        .score-display { font-size: 50px; font-weight: 900; color: var(--primary); text-align: center; margin: 20px 0; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div id="main-menu">
+        <h1>اختبار الباثولوجي الي راح يخليك جيب امتياز</h1>
+        <p style="text-align: center; color: #636e72;">اقره بويه محد يفيدك </p>
+        <div class="menu-grid">
+            <button class="mode-btn study-btn" onclick="start('study')">📖 نظام الدراسة (تصحيح فوري)</button>
+            <button class="mode-btn exam-btn" onclick="start('exam')">📝 نظام الامتحان (تقرير نهائي)</button>
+        </div>
+    </div>
+
+    <div id="quiz-section">
+        <div class="progress-wrapper" id="pw"><div id="progress-bar"></div></div>
+        <div id="q-counter" style="color: #888; font-weight: bold; margin-bottom: 10px;"></div>
+        <div id="q-text" class="question-text"></div>
+        <div id="options-container"></div>
+        <button id="next-btn" style="width:100%; margin-top:20px; padding:15px; border-radius:12px; border:none; background:var(--success); color:white; font-weight:bold; cursor:pointer; display:none;" onclick="render()">السؤال التالي ➡️</button>
+    </div>
+
+    <div id="result-section">
+        <h2 style="text-align: center;">النتيجة النهائية</h2>
+        <div class="score-display" id="final-score">0</div>
+        <button class="mode-btn exam-btn" style="width: 100%;" onclick="location.reload()">إعادة الاختبار 🔄</button>
+        <div id="mistakes-log" style="margin-top: 30px;"></div>
+    </div>
+</div>
+
+<script>
+    const questions = [
+        // الكلى
+        { q: "What shape are the kidneys?", o: ["Bean-shaped", "Spherical", "Cubic", "Cylindrical"], c: "Bean-shaped" },
+        { q: "Where are the kidneys located in the body?", o: ["In the retroperitoneal space", "In the thoracic cavity", "In the abdominal cavity", "In the pelvic cavity"], c: "In the retroperitoneal space" },
+        { q: "What structure surrounds each kidney?", o: ["A fibrous capsule", "A muscular sheath", "A fatty layer", "A peritoneal membrane"], c: "A fibrous capsule" },
+        { q: "Which part of the kidney cortex is lighter in color?", o: ["Outer cortex", "Inner medulla", "Renal pelvis", "Ureter"], c: "Outer cortex" },
+        { q: "Which part of the kidney is darker in color?", o: ["Inner medulla", "Outer cortex", "Renal vein", "Adrenal gland"], c: "Inner medulla" },
+        { q: "Glomerular diseases are most often mediated by what?", o: ["The immune system", "Bacterial infection", "Physical trauma", "Hormonal imbalance"], c: "The immune system" },
+        { q: "Tubular and interstitial kidney diseases are usually caused by?", o: ["Toxic or infectious agents", "Genetic mutations", "Autoimmune reactions", "High blood pressure"], c: "Toxic or infectious agents" },
+        { q: "Vascular kidney diseases often involve which condition?", o: ["Hypertension", "Diabetes mellitus", "Hyperthyroidism", "Anemia"], c: "Hypertension" },
+        { q: "Acute renal failure is a type of which broader category?", o: ["Renal disease", "Liver disease", "Cardiac disease", "Pulmonary disease"], c: "Renal disease" },
+        { q: "CKD stands for?", o: ["Chronic kidney disease", "Congenital kidney disorder", "Cardiovascular kidney dysfunction", "Chronic hepatic disease"], c: "Chronic kidney disease" },
+        { q: "Primary glomerulonephritis primarily targets which kidney structure?", o: ["Glomeruli", "Tubules", "Collecting ducts", "Renal pelvis"], c: "Glomeruli" },
+        { q: "Secondary glomerular diseases affect the glomeruli as a result of what?", o: ["Systemic or hereditary diseases", "Direct trauma", "Viral infection only", "Nutrient deficiency"], c: "Systemic or hereditary diseases" },
+        { q: "Acute poststreptococcal GN most commonly affects children of what age range?", o: ["2 to 14 years", "15 to 30 years", "31 to 45 years", "Over 60 years"], c: "2 to 14 years" },
+        { q: "About what percentage of acute poststreptococcal GN cases occur in adults over 40?", o: ["10%", "25%", "50%", "75%"], c: "10%" },
+        { q: "In acute poststreptococcal GN, kidneys are typically how much heavier than normal?", o: ["One and a half to two times normal weight", "Half of normal weight", "Same weight as normal", "Three times normal weight"], c: "One and a half to two times normal weight" },
+        { q: "The characteristic fleabitten appearance of the kidney cortex is due to what?", o: ["Petechial haemorrhages", "Fibrosis", "Calcifications", "Fat infiltration"], c: "Petechial haemorrhages" },
+        { q: "Hypercellular glomeruli in acute GN are caused by proliferation of which cells?", o: ["Mesangial, endothelial, epithelial cells", "Red blood cells only", "Neurons", "Myocytes"], c: "Mesangial, endothelial, epithelial cells" },
+        { q: "Which type of cells may infiltrate hypercellular glomeruli in acute GN?", o: ["Leucocytes and sometimes monocytes", "Hepatocytes", "Osteocytes", "Myoblasts"], c: "Leucocytes and sometimes monocytes" },
+        { q: "RPGN can lead to acute renal failure over what time period?", o: ["A few weeks or months", "Several years", "Several days", "Over a decade"], c: "A few weeks or months" },
+        { q: "Microscopically, RPGN is characterized by the presence of what inside Bowman's capsules?", o: ["Crescents", "Cysts", "Stones", "Fibrous scars"], c: "Crescents" },
+        // انخماص الرئة
+        { q: "What is the term for incomplete expansion or collapse of the lung?", o: ["Pneumonia", "Atelectasis", "Emphysema", "Bronchitis"], c: "Atelectasis" },
+        { q: "Primary atelectasis occurs in which age group?", o: ["Adults", "Newborns", "Adolescents", "Elderly"], c: "Newborns" },
+        { q: "Secondary atelectasis can occur at which ages?", o: ["Only in infants", "Only in the elderly", "At any age", "Only in middle age"], c: "At any age" },
+        { q: "Which of the following is a cause type of atelectasis?", o: ["Congestion", "Contraction", "Infection", "Fibrosis"], c: "Contraction" },
+        { q: "Obstruction is a type of atelectasis based on what?", o: ["Age", "Gender", "Cause", "Location"], c: "Cause" },
+        { q: "Which cause type of atelectasis is due to external pressure on the lung?", o: ["Compressive", "Infectious", "Vascular", "Allergic"], c: "Compressive" },
+        { q: "Macroscopically, what is true about both lungs in atelectasis?", o: ["They are enlarged", "They are small", "They are normal size", "They are hyperinflated"], c: "They are small" },
+        { q: "How is the surface of lungs described macroscopically in atelectasis?", o: ["Smooth", "Wrinkled", "Spotted", "Bleeding"], c: "Wrinkled" },
+        { q: "The consistency of atelectatic lung tissue is described as?", o: ["Fleshy and rubbery", "Hard and stone-like", "Fluffy and airy", "Liquid and watery"], c: "Fleshy and rubbery" },
+        { q: "Which color changes may be seen on the surface of atelectatic lungs?", o: ["Green or yellow", "Reddish or blue", "Black or white", "Purple or orange"], c: "Reddish or blue" },
+        { q: "Secondary atelectasis often follows what event in the air spaces?", o: ["Infection", "Dilatation", "Calcification", "Necrosis"], c: "Dilatation" },
+        { q: "In secondary atelectasis, which lung is completely collapsed?", o: ["Right upper lobe", "Entire left lung", "Right middle lobe only", "Left upper lobe only"], c: "Entire left lung" },
+        { q: "Which parts of the right lung are collapsed in secondary atelectasis?", o: ["Upper lobe only", "Middle and lower lobes", "Entire right lung", "Only the right apex"], c: "Middle and lower lobes" },
+        { q: "How are the alveolar spaces described in the area of atelectasis?", o: ["Large and airy", "Small", "Normal size", "Filled with pus"], c: "Small" },
+        { q: "What characteristic do alveolar walls have in atelectasis?", o: ["Thin and dry", "Thick edematous with congested vessels", "Calcified", "Completely absent"], c: "Thick edematous with congested vessels" },
+        { q: "What do alveolar sacs appear as in atelectasis?", o: ["Large bubbles", "Slits", "Rounded sacs", "Solid masses"], c: "Slits" },
+        { q: "Which term best describes the lack of air in atelectatic lung tissue?", o: ["Airless", "Hyperventilated", "Overinflated", "Aerated"], c: "Airless" },
+        { q: "Which of the following is NOT a type of atelectasis based on cause?", o: ["Contraction", "Obstruction", "Compressive", "Diffusion"], c: "Diffusion" },
+        { q: "Macroscopic appearance of atelectasis includes a rubbery consistency due to:", o: ["Edema", "Infection", "Fibrosis", "Calcification"], c: "Edema" },
+        // سرطان الرئة
+        { q: "What lung cancer accounts for more than 40% of lung cancers?", o: ["Small cell carcinoma", "Squamous cell carcinoma", "Invasive adenocarcinoma", "Large cell carcinoma"], c: "Invasive adenocarcinoma" },
+        { q: "What percentage of invasive adenocarcinomas are early-stage specimens?", o: ["10%", "30%", "50%", "70%"], c: "30%" },
+        { q: "Majority of invasive adenocarcinomas are diagnosed from which specimen?", o: ["Large surgical resections", "Small biopsies and cytology specimens", "Autopsy samples", "Blood tests"], c: "Small biopsies and cytology specimens" },
+        { q: "On CT scan, most invasive adenocarcinomas appear as what?", o: ["Ground-glass opacities", "Solid nodules or masses", "Cystic lesions", "Calcified nodules"], c: "Solid nodules or masses" },
+        { q: "The yellow granular appearance in adenocarcinoma is due to:", o: ["Mucin secretion", "Tumor necrosis", "Hemorrhage", "Calcification"], c: "Tumor necrosis" },
+        { q: "Resected adenocarcinoma mainly consisted of parenchyma with:", o: ["Fibrosis and inflammation", "Fibrosis and necrosis", "Calcification and hemorrhage", "Edema and cyst formation"], c: "Fibrosis and necrosis" },
+        { q: "Which glandular pattern in adenocarcinoma is Swiss cheese appearance?", o: ["Papillary", "Cribriform", "Acinar", "Micropapillary"], c: "Cribriform" },
+        { q: "Malignant cells in invasive adenocarcinoma may be which shapes?", o: ["Only columnar", "Oval, cuboidal, or columnar", "Only spindle-shaped", "Only squamous"], c: "Oval, cuboidal, or columnar" },
+        { q: "The lumens of glands in invasive adenocarcinoma may contain:", o: ["Blood", "Mucin", "Keratin", "Calcium"], c: "Mucin" },
+        { q: "Small cell carcinoma cells are how many times the size of a lymphocyte?", o: ["Same size", "Two times larger", "Three times larger", "Ten times larger"], c: "Three times larger" },
+        { q: "Which chromatin pattern is characteristic of small cell carcinoma?", o: ["Coarse clumped", "Salt and pepper granular", "Homogenous dark", "Clear vacuolated"], c: "Salt and pepper granular" },
+        { q: "A distinctive feature of small cell carcinoma cells is:", o: ["Prominent nucleoli", "Nuclear molding", "Abundant cytoplasm", "Large cell size"], c: "Nuclear molding" },
+        { q: "In small cell carcinoma, the cytoplasm is usually:", o: ["Abundant", "Scant with inapparent cell margins", "Vacuolated", "Granular and pink"], c: "Scant with inapparent cell margins" },
+        { q: "Crush artifact is most prominent in which lung cancer type?", o: ["Adenocarcinoma", "Small cell carcinoma", "Squamous cell carcinoma", "Large cell carcinoma"], c: "Small cell carcinoma" },
+        { q: "Which describes the shape of tumor cells in small cell carcinoma?", o: ["Only round", "Round, oval, or spindle-shaped", "Only columnar", "Only cuboidal"], c: "Round, oval, or spindle-shaped" },
+        { q: "The term invasive in invasive adenocarcinoma refers to what?", o: ["Distant metastasis", "Tumor growing beyond the basement membrane", "Tumor confined to one lobe", "In-situ growth"], c: "Tumor growing beyond the basement membrane" },
+        { q: "Imaging finding most commonly associated with invasive adenocarcinoma?", o: ["Cystic lesion", "Solid nodule or mass", "Ground-glass opacity", "Calcified granuloma"], c: "Solid nodule or mass" },
+        { q: "Arrowhead in the described resected specimen points to:", o: ["A blood vessel", "A small focus of residual tumor", "A lymph node", "A calcified area"], c: "A small focus of residual tumor" },
+        { q: "Which cell shape is NOT mentioned for malignant cells in adenocarcinoma?", o: ["Oval", "Cuboidal", "Columnar", "Squamous"], c: "Squamous" },
+        // التهاب القصبات والجلطة
+        { q: "What symptom does inflammation of the bronchi cause?", o: ["Coughing and mucus production", "Fever and chills", "Headache", "Skin rash"], c: "Coughing and mucus production" },
+        { q: "What are the two types of bronchial inflammation mentioned?", o: ["Acute and chronic", "Mild and severe", "Bacterial and viral", "Allergic and nonallergic"], c: "Acute and chronic" },
+        { q: "What is the most common cause of bronchial inflammation?", o: ["Cigarette smoking and pollution", "Cold weather", "High altitude", "Exercise"], c: "Cigarette smoking and pollution" },
+        { q: "In gross section, bronchial wall in disease is:", o: ["Thickened, congested and oedematous", "Thin and transparent", "Calcified", "Normal"], c: "Thickened, congested and oedematous" },
+        { q: "What may the mucosa of bronchi contain?", o: ["Mucus plugs and purulent", "Calcium", "Fibrous scar", "Air bubbles"], c: "Mucus plugs and purulent" },
+        { q: "Which glands are enlarged in bronchial disease?", o: ["Mucous secreting glands of trachea and bronchi", "Salivary glands", "Sweat glands", "Sebaceous glands"], c: "Mucous secreting glands of trachea and bronchi" },
+        { q: "What is the normal Reid index value?", o: ["0.4", "1.0", "0.2", "0.8"], c: "0.4" },
+        { q: "What does an increased Reid index indicate?", o: ["Enlarged mucous gland layer", "Decreased blood flow", "Increased nerve density", "Thinner airway walls"], c: "Enlarged mucous gland layer" },
+        { q: "What type of epithelium lines the bronchi?", o: ["Pseudostratified columnar epithelium", "Simple squamous", "Transitional", "Stratified squamous"], c: "Pseudostratified columnar epithelium" },
+        { q: "What cellular change may be seen in bronchi epithelium?", o: ["Goblet cell hyperplasia", "Neuron degeneration", "Muscle atrophy", "Keratinization"], c: "Goblet cell hyperplasia" },
+        { q: "What does a blood clot that blocks a lung artery cause?", o: ["Stops blood flow to the artery", "Increases oxygen", "Enhances expansion", "Reduces mucus"], c: "Stops blood flow to the artery" },
+        { q: "Where do most pulmonary emboli originate?", o: ["Deep vein in the leg", "Heart valve", "Liver vein", "Arm vein"], c: "Deep vein in the leg" },
+        { q: "Which is NOT a cause of blood clots mentioned?", o: ["Viral infection", "Trauma", "Surgery", "Medical procedures"], c: "Viral infection" },
+        { q: "How does cut surface of a fresh thromboembolus appear grossly?", o: ["Red gelatinous appearance", "White chalky", "Black oily", "Transparent"], c: "Red gelatinous appearance" },
+        { q: "What happens to chronic thromboemboli over time?", o: ["Become fibrotic and form a band", "Dissolve", "Transform into bone", "Remain unchanged"], c: "Become fibrotic and form a band" },
+        { q: "What are the lines of Zahn composed of?", o: ["Layers of RBCs, platelets, and fibrin", "Collagen only", "Smooth muscle", "Cartilage"], c: "Layers of RBCs, platelets, and fibrin" },
+        { q: "In histology, what color areas do pulmonary arteries show in a thrombus?", o: ["Pale pink and red", "Bright green", "Dark brown", "Yellow"], c: "Pale pink and red" },
+        { q: "Which index assesses mucous gland enlargement in bronchi?", o: ["Reid index", "Glasgow index", "Apgar", "BMI"], c: "Reid index" },
+        { q: "Term describing thickening of bronchial wall due to congestion:", o: ["Oedematous", "Calcified", "Necrotic", "Hypertrophic"], c: "Oedematous" },
+        { q: "Final Question: Small cell carcinoma cytoplasm is usually:", o: ["Abundant", "Scant with inapparent cell margins", "Vacuolated", "Pink"], c: "Scant with inapparent cell margins" }
+    ];
+
+    let current = 0, score = 0, mode = '', mistakes = [], locked = false;
+
+    function shuffle(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+        return array;
+    }
+
+    function start(m) {
+        mode = m;
+        document.getElementById('main-menu').style.display = 'none';
+        document.getElementById('quiz-section').style.display = 'block';
+        document.getElementById('pw').style.display = 'block';
+        render();
+    }
+
+    function render() {
+        if (current >= questions.length) return end();
+        locked = false;
+        const qData = questions[current];
+        document.getElementById('q-counter').innerText = `سؤال ${current + 1} من ${questions.length}`;
+        document.getElementById('q-text').innerText = qData.q;
+        document.getElementById('progress-bar').style.width = ((current / questions.length) * 100) + "%";
+        
+        const container = document.getElementById('options-container');
+        container.innerHTML = '';
+        document.getElementById('next-btn').style.display = 'none';
+
+        // بعثرة الخيارات
+        const shuffledOptions = shuffle([...qData.o]);
+
+        shuffledOptions.forEach((opt) => {
+            const div = document.createElement('div');
+            div.className = 'option';
+            div.innerText = opt;
+            div.onclick = () => select(opt, div);
+            container.appendChild(div);
+        });
+    }
+
+    function select(selectedText, el) {
+        if (locked) return;
+        locked = true;
+        const correctText = questions[current].c;
+
+        if (mode === 'study') {
+            if (selectedText === correctText) {
+                el.classList.add('correct');
+                score++;
+            } else {
+                el.classList.add('wrong');
+                // تلوين الصحيح
+                Array.from(document.querySelectorAll('.option')).forEach(btn => {
+                    if (btn.innerText === correctText) btn.classList.add('correct');
+                });
+            }
+            document.getElementById('next-btn').style.display = 'block';
+            current++;
+        } else {
+            if (selectedText === correctText) {
+                score++;
+            } else {
+                mistakes.push({q: questions[current].q, c: correctText, w: selectedText});
+            }
+            setTimeout(() => { current++; render(); }, 400);
+        }
+    }
+
+    function end() {
+        document.getElementById('quiz-section').style.display = 'none';
+        document.getElementById('result-section').style.display = 'block';
+        document.getElementById('final-score').innerText = `${score} / ${questions.length}`;
+        
+        if (mistakes.length > 0 && mode === 'exam') {
+            const log = document.getElementById('mistakes-log');
+            log.innerHTML = '<h3>مراجعة الأخطاء:</h3>';
+            mistakes.forEach(m => {
+                log.innerHTML += `<div class="mistake-card">
+                    <b>السؤال:</b> ${m.q}<br>
+                    ثول ماتك: <span style="color:red; text-decoration:line-through">${m.w}</span> | 
+                    الصحيحة: <span style="color:green; font-weight:bold">${m.c}</span>
+                </div>`;
+            });
+        }
+    }
+</script>
+</body>
+</html>
